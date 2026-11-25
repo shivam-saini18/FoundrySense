@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer
@@ -68,10 +68,13 @@ export default function App() {
     data.heats.filter((h) => h.start_ts <= currentTs).slice(-1)[0] ||
     data.heats[0];
 
-  const syncedAlert =
+  const HEAT_STATES = ['RAMP_UP', 'MELT', 'HOLD', 'TAP', 'IDLE'];
+  const currentStateIdx = HEAT_STATES.indexOf(latestPoint.detected_state);
+  const rawAlert =
     data.alerts.find((a) => a.heat_id === activeHeat?.heat_id) ||
     data.alerts.find((a) => currentTs >= a.start_ts && currentTs <= a.end_ts) ||
     null;
+  const syncedAlert = currentStateIdx >= HEAT_STATES.indexOf('HOLD') ? rawAlert : null;
 
   const totalHeatsCount = data.summary_totals.total_heats || data.heats.length;
 
@@ -119,7 +122,7 @@ export default function App() {
         <div className="flex flex-wrap items-center gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
           <span className="text-xs text-slate-400 px-2">Scenario:</span>
           {[
-            { key: 'normal', label: 'Normal (Alerts Active)' },
+            { key: 'normal', label: 'Normal operation' },
             { key: 'idle_waste', label: 'Inject Idle Waste' },
             { key: 'tap_overshoot', label: 'Inject Tap Overshoot' },
           ].map((s) => (

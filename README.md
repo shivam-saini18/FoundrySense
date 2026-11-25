@@ -15,7 +15,7 @@
 * **Estimated Scale Cost:** ₹1.6 L hardware sensor kit + ₹2,500/month cloud & telemetry operations
 
 ## Local Setup
-`ash
+```bash
 npm install
 npm run dev
 ```
