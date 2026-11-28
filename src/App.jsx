@@ -74,7 +74,52 @@ export default function App() {
     data.alerts.find((a) => a.heat_id === activeHeat?.heat_id) ||
     data.alerts.find((a) => currentTs >= a.start_ts && currentTs <= a.end_ts) ||
     null;
-  const syncedAlert = currentStateIdx >= HEAT_STATES.indexOf('HOLD') ? rawAlert : null;
+
+  const SAMPLE_MIN = 4;
+  const IDLE_ALERT_MIN = 8;
+  const holdSamplesSoFar = activeHeat
+    ? data.telemetry_stream
+        .slice(0, replayIdx + 1)
+        .filter(
+          (t) =>
+            t.ts >= activeHeat.start_ts &&
+            t.ts <= currentTs &&
+            t.detected_state === 'HOLD'
+        ).length
+    : 0;
+  const holdMinSoFar = holdSamplesSoFar * SAMPLE_MIN;
+  const holdDone = currentStateIdx > HEAT_STATES.indexOf('HOLD');
+  const totalIdleMin = activeHeat?.detected_idle_min ?? holdMinSoFar;
+  const idleMinShown = holdDone
+    ? totalIdleMin
+    : Math.min(holdMinSoFar, totalIdleMin);
+
+  const isIdleAlert =
+    rawAlert &&
+    /idle|hold/i.test(`${rawAlert.type || ''} ${rawAlert.title_en || ''}`);
+
+  let syncedAlert = null;
+  if (rawAlert && currentStateIdx >= HEAT_STATES.indexOf('HOLD')) {
+    if (!isIdleAlert || idleMinShown >= IDLE_ALERT_MIN) {
+      syncedAlert = rawAlert;
+    }
+  }
+
+  const alertTitle = !syncedAlert
+    ? ''
+    : isIdleAlert
+    ? lang === 'hi'
+      ? `अतिरिक्त होल्डिंग ${idleMinShown} मिनट — तुरंत टैप करें`
+      : `Idle holding ${idleMinShown} min`
+    : lang === 'hi'
+    ? syncedAlert.title_hi
+    : syncedAlert.title_en;
+
+  const alertRs = !syncedAlert
+    ? 0
+    : isIdleAlert && totalIdleMin > 0
+    ? Math.round((syncedAlert.rs_impact_heat * idleMinShown) / totalIdleMin)
+    : syncedAlert.rs_impact_heat;
 
   const totalHeatsCount = data.summary_totals.total_heats || data.heats.length;
 
@@ -300,10 +345,10 @@ export default function App() {
                   <div className="p-5 rounded-xl bg-rose-500/15 border border-rose-500/40 flex flex-wrap items-center justify-between gap-4">
                     <div>
                       <span className="text-xs font-bold uppercase px-2 py-0.5 rounded bg-rose-500 text-white">
-                        {syncedAlert.heat_id} • ₹{syncedAlert.rs_impact_heat} / heat
+                        {syncedAlert.heat_id} • ₹{alertRs} / heat
                       </span>
                       <h3 className="text-2xl font-bold text-white mt-2">
-                        {lang === 'hi' ? syncedAlert.title_hi : syncedAlert.title_en}
+                        {alertTitle}
                       </h3>
                       <p className="text-sm text-rose-200 mt-1">{syncedAlert.action}</p>
                     </div>
