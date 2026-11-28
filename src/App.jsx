@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer
@@ -109,7 +109,7 @@ export default function App() {
     ? ''
     : isIdleAlert
     ? lang === 'hi'
-      ? `अतिरिक्त होल्डिंग ${idleMinShown} मिनट — तुरंत टैप करें`
+      ? `निष्क्रिय ${idleMinShown} मिनट — चार्ज डालें`
       : `Idle holding ${idleMinShown} min`
     : lang === 'hi'
     ? syncedAlert.title_hi
@@ -117,8 +117,11 @@ export default function App() {
 
   const alertRs = !syncedAlert
     ? 0
-    : isIdleAlert && totalIdleMin > 0
-    ? Math.round((syncedAlert.rs_impact_heat * idleMinShown) / totalIdleMin)
+    : isIdleAlert && totalIdleMin > 4
+    ? Math.round(
+        (syncedAlert.rs_impact_heat * Math.max(0, idleMinShown - 4)) /
+          (totalIdleMin - 4)
+      )
     : syncedAlert.rs_impact_heat;
 
   const totalHeatsCount = data.summary_totals.total_heats || data.heats.length;
